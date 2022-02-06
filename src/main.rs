@@ -73,7 +73,7 @@ impl Component for Model {
                 <svg viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)} class="svg-container">
                     // <rect x="0" y="0" width="1.5" height="1.0"></rect>
                     // <circle cx={("0.0", rx_view.clone().filter_map(|x| future::ready(if let AppView::MoveDot(a, _) = x {Some(a.to_string())} else {None})))} cy={("0.0", rx_view.clone().filter_map(|x| future::ready(if let AppView::MoveDot(_, a) = x {Some(a.to_string())} else {None})))} r="0.1" fill="red" xmlns=ns></circle>
-                    { self.human.view(viewport) }
+                    { self.human.view() }
                 </svg>
             </div>
         }

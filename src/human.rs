@@ -9,23 +9,25 @@ macro_rules! log {
     }
 }
 
-#[derive(Debug, Default)]
-struct Point {
-    x: f64,
-    y: f64,
+#[derive(Debug, Clone, Copy)]
+pub struct Point {
+    pub x: f64,
+    pub y: f64,
 }
 
-#[derive(Debug, Default)]
+// Update point selectively
+impl Point {
+    fn update(&mut self, x: Option<f64>, y: Option<f64>) {
+        self.x = x.unwrap_or(self.x);
+        self.y = y.unwrap_or(self.y);
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 /// struct containing the position of the a corner and the b corner
 struct Position {
     a: Point,
     b: Point,
-}
-
-#[derive(Default)]
-struct Vector {
-    x: f64,
-    y: f64,
 }
 
 pub struct Viewport {
@@ -35,258 +37,165 @@ pub struct Viewport {
     pub y1: f64,
 }
 
+// rendering a Position
 impl Position {
-    fn render(&self, v: &Viewport) -> Html {
+    fn render(&self) -> Html {
         html! {
             <>
-                <line x1={(self.a.x * (v.x1 - v.x0) + v.x0).to_string()} y1={(v.y1 - self.a.y * (v.y1 - v.y0)).to_string()} x2={(self.b.x * (v.x1 - v.x0) + v.x0).to_string()} y2={(v.y1 - self.b.y * (v.y1 - v.y0)).to_string()} stroke="black" stroke-width="0.01" />
+                <line x1={(self.a.x).to_string()} y1={(self.a.y).to_string()} x2={(self.b.x).to_string()} y2={(self.b.y).to_string()} stroke="black" stroke-width="0.01" />
             </>
         }
     }
 }
 
-#[derive(Default)]
 pub struct Human {
     time: f64,
-    left_foot: Point,
-    /// total time elapsed
-    left_calf: Vector,
-    left_thigh: Vector,
-    left_bicep: Vector,
-    left_forearm: Vector,
-    right_calf: Vector,
-    right_thigh: Vector,
-    right_bicep: Vector,
-    right_forearm: Vector,
-    torso: Vector,
-    head: Vector,
+    pub left_foot: Point,
+    pub left_knee: Point,
+    pub hip: Point,
+    pub right_knee: Point,
+    pub right_foot: Point,
+    pub neck: Point,
+    pub left_elbow: Point,
+    pub left_hand: Point,
+    pub right_elbow: Point,
+    pub right_hand: Point,
+    pub head: Point,
 }
 
 pub enum UpdateHuman {
-    LeftFootA(f64),
-    LeftFootB(f64),
-    LeftCalfX(f64),
-    LeftCalfY(f64),
-    LeftThighX(f64),
-    LeftThighY(f64),
-    LeftBicepX(f64),
-    LeftBicepY(f64),
-    LeftForearmX(f64),
-    LeftForearmY(f64),
-    RightCalfX(f64),
-    RightCalfY(f64),
-    RightThighX(f64),
-    RightThighY(f64),
-    RightBicepX(f64),
-    RightBicepY(f64),
-    RightForearmX(f64),
-    RightForearmY(f64),
-    TorsoX(f64),
-    TorsoY(f64),
-    HeadX(f64),
-    HeadY(f64),
+    LeftFoot(Option<f64>, Option<f64>),
+    LeftKnee(Option<f64>, Option<f64>),
+    Hip(Option<f64>, Option<f64>),
+    RightKnee(Option<f64>, Option<f64>),
+    RightFoot(Option<f64>, Option<f64>),
+    Neck(Option<f64>, Option<f64>),
+    LeftElbow(Option<f64>, Option<f64>),
+    LeftHand(Option<f64>, Option<f64>),
+    RightElbow(Option<f64>, Option<f64>),
+    RightHand(Option<f64>, Option<f64>),
+    Head(Option<f64>, Option<f64>),
 }
 
 // Getters for the position of limbs
 impl Human {
     fn get_left_calf(&self) -> Position {
         Position {
-            a: Point {
-                x: self.left_foot.x,
-                y: self.left_foot.y,
-            },
-            b: Point {
-                x: self.left_calf.x + self.left_foot.x,
-                y: self.left_calf.y + self.left_foot.y,
-            },
+            a: self.left_foot,
+            b: self.left_knee,
         }
     }
     fn get_left_thigh(&self) -> Position {
-        let left_calf_pos = self.get_left_calf();
         Position {
-            a: Point {
-                x: left_calf_pos.b.x,
-                y: left_calf_pos.b.y,
-            },
-            b: Point {
-                x: left_calf_pos.b.x + self.left_thigh.x,
-                y: left_calf_pos.b.y + self.left_thigh.y,
-            },
+            a: self.left_knee,
+            b: self.hip,
         }
     }
     fn get_right_thigh(&self) -> Position {
-        let left_thigh_pos = self.get_left_thigh();
         Position {
-            a: Point {
-                x: left_thigh_pos.b.x,
-                y: left_thigh_pos.b.y,
-            },
-            b: Point {
-                x: left_thigh_pos.b.x + self.right_thigh.x,
-                y: left_thigh_pos.b.y + self.right_thigh.y,
-            },
+            a: self.hip,
+            b: self.right_knee,
         }
     }
     fn get_right_calf(&self) -> Position {
-        let right_thigh_pos = self.get_right_thigh();
         Position {
-            a: Point {
-                x: right_thigh_pos.b.x,
-                y: right_thigh_pos.b.y,
-            },
-            b: Point {
-                x: right_thigh_pos.b.x + self.right_calf.x,
-                y: right_thigh_pos.b.y + self.right_calf.y,
-            },
+            a: self.right_knee,
+            b: self.right_foot,
         }
     }
     fn get_torso(&self) -> Position {
-        let left_thigh_pos = self.get_left_thigh();
         Position {
-            a: Point {
-                x: left_thigh_pos.b.x,
-                y: left_thigh_pos.b.y,
-            },
-            b: Point {
-                x: left_thigh_pos.b.x + self.torso.x,
-                y: left_thigh_pos.b.y + self.torso.y,
-            },
+            a: self.hip,
+            b: self.neck,
         }
     }
     fn get_left_bicep(&self) -> Position {
-        let torso_pos = self.get_torso();
         Position {
-            a: Point {
-                x: torso_pos.b.x,
-                y: torso_pos.b.y,
-            },
-            b: Point {
-                x: torso_pos.b.x + self.left_bicep.x,
-                y: torso_pos.b.y + self.left_bicep.y,
-            },
+            a: self.neck,
+            b: self.left_elbow,
         }
     }
     fn get_left_forearm(&self) -> Position {
-        let left_bicep_pos = self.get_left_bicep();
         Position {
-            a: Point {
-                x: left_bicep_pos.b.x,
-                y: left_bicep_pos.b.y,
-            },
-            b: Point {
-                x: left_bicep_pos.b.x + self.left_forearm.x,
-                y: left_bicep_pos.b.y + self.left_forearm.y,
-            },
+            a: self.left_elbow,
+            b: self.left_hand,
         }
     }
     fn get_right_bicep(&self) -> Position {
-        let torso_pos = self.get_torso();
         Position {
-            a: Point {
-                x: torso_pos.b.x,
-                y: torso_pos.b.y,
-            },
-            b: Point {
-                x: torso_pos.b.x + self.right_bicep.x,
-                y: torso_pos.b.y + self.right_bicep.y,
-            },
+            a: self.neck,
+            b: self.right_elbow,
         }
     }
     fn get_right_forearm(&self) -> Position {
-        let right_bicep_pos = self.get_right_bicep();
         Position {
-            a: Point {
-                x: right_bicep_pos.b.x,
-                y: right_bicep_pos.b.y,
-            },
-            b: Point {
-                x: right_bicep_pos.b.x + self.right_forearm.x,
-                y: right_bicep_pos.b.y + self.right_forearm.y,
-            },
+            a: self.right_elbow,
+            b: self.right_hand,
         }
     }
     fn get_head(&self) -> Position {
-        let torso_pos = self.get_torso();
         Position {
-            a: Point {
-                x: torso_pos.b.x,
-                y: torso_pos.b.y,
-            },
-            b: Point {
-                x: torso_pos.b.x + self.head.x,
-                y: torso_pos.b.y + self.head.y,
-            },
+            a: self.neck,
+            b: self.head,
         }
     }
     pub fn update_human(&mut self, update: UpdateHuman) {
         match update {
-            UpdateHuman::LeftFootA(x) => self.left_foot.x = x,
-            UpdateHuman::LeftFootB(y) => self.left_foot.y = y,
-            UpdateHuman::LeftCalfX(x) => self.left_calf.x = x,
-            UpdateHuman::LeftCalfY(y) => self.left_calf.y = y,
-            UpdateHuman::LeftThighX(x) => self.left_thigh.x = x,
-            UpdateHuman::LeftThighY(y) => self.left_thigh.y = y,
-            UpdateHuman::LeftBicepX(x) => self.left_bicep.x = x,
-            UpdateHuman::LeftBicepY(y) => self.left_bicep.y = y,
-            UpdateHuman::LeftForearmX(x) => self.left_forearm.x = x,
-            UpdateHuman::LeftForearmY(y) => self.left_forearm.y = y,
-            UpdateHuman::RightCalfX(x) => self.right_calf.x = x,
-            UpdateHuman::RightCalfY(y) => self.right_calf.y = y,
-            UpdateHuman::RightThighX(x) => self.right_thigh.x = x,
-            UpdateHuman::RightThighY(y) => self.right_thigh.y = y,
-            UpdateHuman::RightBicepX(x) => self.right_bicep.x = x,
-            UpdateHuman::RightBicepY(y) => self.right_bicep.y = y,
-            UpdateHuman::RightForearmX(x) => self.right_forearm.x = x,
-            UpdateHuman::RightForearmY(y) => self.right_forearm.y = y,
-            UpdateHuman::TorsoX(x) => self.torso.x = x,
-            UpdateHuman::TorsoY(y) => self.torso.y = y,
-            UpdateHuman::HeadX(x) => self.head.x = x,
-            UpdateHuman::HeadY(y) => self.head.y = y,
+            UpdateHuman::LeftFoot(x, y) => self.left_foot.update(x, y),
+            UpdateHuman::LeftKnee(x, y) => self.left_knee.update(x, y),
+            UpdateHuman::Hip(x, y) => self.hip.update(x, y),
+            UpdateHuman::RightKnee(x, y) => self.right_knee.update(x, y),
+            UpdateHuman::RightFoot(x, y) => self.right_foot.update(x, y),
+            UpdateHuman::Neck(x, y) => self.neck.update(x, y),
+            UpdateHuman::LeftElbow(x, y) => self.left_elbow.update(x, y),
+            UpdateHuman::LeftHand(x, y) => self.left_hand.update(x, y),
+            UpdateHuman::RightElbow(x, y) => self.right_elbow.update(x, y),
+            UpdateHuman::RightHand(x, y) => self.right_hand.update(x, y),
+            UpdateHuman::Head(x, y) => self.head.update(x, y),
         }
     }
-
 }
 
 impl Human {
     pub fn new() -> Self {
         Human {
-            left_foot: Point { x: 0.1, y: 0.1 },
-            left_calf: Vector { x: 0.05, y: 0.05 },
-            left_thigh: Vector { x: 0.05, y: 0.03 },
-            left_bicep: Vector { x: -0.05, y: 0.05 },
-            left_forearm: Vector { x: -0.05, y: -0.03 },
-            right_calf: Vector { x: 0.05, y: 0.05 },
-            right_thigh: Vector { x: 0.05, y: 0.03 },
-            right_bicep: Vector { x: -0.05, y: 0.05 },
-            right_forearm: Vector { x: -0.05, y: -0.03 },
-            torso: Vector { x: 0.0, y: 0.05 },
-            head: Vector { x: 0.001, y: 0.05 },
-            ..Default::default()
+            time: 0.0,
+            left_foot: Point { x: 0.15, y: 0.9 },
+            left_knee: Point { x: 0.225, y: 0.85 },
+            hip: Point { x: 0.3, y: 0.82 },
+            right_knee: Point { x: 0.375, y: 0.77 },
+            right_foot: Point { x: 0.45, y: 0.74 },
+            neck: Point { x: 0.3, y: 0.77 },
+            left_elbow: Point { x: 0.225, y: 0.72 },
+            left_hand: Point { x: 0.15, y: 0.74 },
+            right_elbow: Point { x: 0.375, y: 0.72 },
+            right_hand: Point { x: 0.45, y: 0.72 },
+            head: Point { x: 0.315, y: 0.72 },
         }
     }
     pub fn update(&mut self, time: f64) {
         self.time = time;
         // alias for the current time
-        let t = self.time / 477.46482928;
-        let (sin, cos) = (f64::sin, f64::cos);
+        // let t = self.time / 477.46482928;
+        // let (sin, cos) = (f64::sin, f64::cos);
         log!("{}", self.time);
-        self.left_calf.x = cos(t) * 0.01;
-        self.left_calf.y = sin(t) * 0.01;
+        // self.left_calf.x = cos(t) * 0.01;
+        // self.left_calf.y = sin(t) * 0.01;
     }
 
-    pub fn view(&self, v: Viewport) -> Html {
+    pub fn view(&self) -> Html {
         html! {
             <>
-                {self.get_left_calf().render(&v)}
-                {self.get_left_thigh().render(&v)}
-                {self.get_left_forearm().render(&v)}
-                {self.get_left_bicep().render(&v)}
-                {self.get_right_calf().render(&v)}
-                {self.get_right_thigh().render(&v)}
-                {self.get_right_forearm().render(&v)}
-                {self.get_right_bicep().render(&v)}
-                {self.get_torso().render(&v)}
-                {self.get_head().render(&v)}
+                {self.get_left_calf().render()}
+                {self.get_left_thigh().render()}
+                {self.get_left_forearm().render()}
+                {self.get_left_bicep().render()}
+                {self.get_right_calf().render()}
+                {self.get_right_thigh().render()}
+                {self.get_right_forearm().render()}
+                {self.get_right_bicep().render()}
+                {self.get_torso().render()}
+                {self.get_head().render()}
             </>
         }
     }

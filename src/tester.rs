@@ -1,7 +1,6 @@
 use crate::human;
-use log::{debug, Level};
+use log::{debug};
 use wasm_bindgen::JsCast;
-use web_sys::HtmlInputElement;
 use yew::prelude::*;
 
 // Logging macro for easier debugging. Displays file and line number. Use with `log!("Hello World")`
@@ -12,19 +11,19 @@ macro_rules! log {
 }
 
 pub enum TesterMsg {
-    Update(human::UpdateHuman),
     ClickedJoint(Joints),
     MouseUp,
     MouseMove(MouseEvent),
-    Ignore,
+    KeyDown(KeyboardEvent),
 }
 
 pub struct Tester {
     human: human::Human,
     current_joint: Option<Joints>,
+    image_index: usize,
 }
 
-enum Joints {
+pub enum Joints {
     LeftFoot,
     LeftKnee,
     Hip,
@@ -42,20 +41,17 @@ impl Component for Tester {
     type Message = TesterMsg;
     type Properties = ();
 
-    fn create(ctx: &Context<Self>) -> Self {
+    fn create(_ctx: &Context<Self>) -> Self {
         log!("create");
         Self {
             human: human::Human::new(),
             current_joint: None,
+            image_index: 0,
         }
     }
 
     fn update(&mut self, _ctx: &Context<Self>, tester_msg: Self::Message) -> bool {
         match tester_msg {
-            TesterMsg::Update(update) => {
-                self.human.update_human(update);
-                true
-            }
             TesterMsg::ClickedJoint(joint) => {
                 self.current_joint = Some(joint);
                 false
@@ -65,59 +61,62 @@ impl Component for Tester {
                 false
             }
             TesterMsg::MouseMove(e) => {
-                // if let Some(joint) = self.current_joint {
-                    // let mouse_pos = (e.client_x(), e.client_y());
-                    // let window = web_sys::window().expect("no global `window` exists");
-                    // let document = window.document().expect("should have a document on window");
-                    // let transform_matrix = document
-                    //     .get_element_by_id("svg")
-                    //     .unwrap()
-                    //     .dyn_into::<web_sys::SvgGraphicsElement>()
-                    //     .expect("should be an svg element")
-                    //     .get_screen_ctm()
-                    //     .expect("should have a transform matrix")
-                    //     .inverse()
-                    //     .expect("should have an inverse matrix");
-                    // let mp = (mouse_pos.0 as f32, mouse_pos.1 as f32);
-                    // let tm = transform_matrix;
-                    // let new_pos = (
-                    //     tm.a() * mp.0 + tm.c() * mp.1 + tm.e(),
-                    //     tm.b() * mp.0 + tm.d() * mp.1 + tm.f(),
-                    // );
-                    // let original_pos = match joint {
-                    //     Joints::LeftFoot => self.human.left_foot,
-                    //     Joints::LeftKnee => self.human.get_left_calf().b,
-                    //     Joints::Hip => self.human.get_left_thigh().b,
-                    //     Joints::RightKnee => self.human.right_thigh().b,
-                    //     Joints::RightFoot => self.human.right_calf().b,
-                    //     Joints::Neck => self.human.get_torso().b,
-                    //     Joints::LeftElbow => self.human.get_left_forearm().b,
-                    //     Joints::LeftHand => self.human.get_left_bicep().b,
-                    //     Joints::RightElbow => self.human.get_right_forearm().b,
-                    //     Joints::RightHand => self.human.get_right_bicep().b,
-                    //     Joints::Head => self.human.get_head().b,
-                    // };
-                    // let diff = (new_pos.0 - original_pos.0, new_pos.1 - original_pos.1);
-                    // match joint {
-                    //     Joints::LeftFoot => {
-                    //         self.human.left_foot = (
-                    //             self.human.left_foot.x + diff.0,
-                    //             self.human.left_foot.y + diff.1,
-                    //         );
-                    //     }
-                    //     Joints::LeftKnee => {
-                    //         self.human.get_left_calf_mut().b = (
-                    //             self.human.get_left_calf().b.x + diff.0,
-                    //             self.human.get_left_calf().b.y + diff.1,
-                    //         );
-                    //     }
-                    // }
-                    // let joint_pos = joint_pos.add(Vector3::new(mouse_pos.x(), mouse_pos.y(), 0.0));
-                    // self.human.set_joint_pos(joint, joint_pos);
-                // }
-                false
+                if let Some(joint) = &self.current_joint {
+                    let mouse_pos = (e.client_x(), e.client_y());
+                    let window = web_sys::window().expect("no global `window` exists");
+                    let document = window.document().expect("should have a document on window");
+                    let transform_matrix = document
+                        .get_element_by_id("svg")
+                        .unwrap()
+                        .dyn_into::<web_sys::SvgGraphicsElement>()
+                        .expect("should be an svg element")
+                        .get_screen_ctm()
+                        .expect("should have a transform matrix")
+                        .inverse()
+                        .expect("should have an inverse matrix");
+                    let mp = (mouse_pos.0 as f32, mouse_pos.1 as f32);
+                    let tm = transform_matrix;
+                    let new_pos = (
+                        (tm.a() * mp.0 + tm.c() * mp.1 + tm.e()) as f64,
+                        (tm.b() * mp.0 + tm.d() * mp.1 + tm.f()) as f64,
+                    );
+                    use human::UpdateHuman;
+                    self.human.update_human(match joint {
+                        Joints::LeftFoot => UpdateHuman::LeftFoot(Some(new_pos.0), Some(new_pos.1)),
+                        Joints::LeftKnee => UpdateHuman::LeftKnee(Some(new_pos.0), Some(new_pos.1)),
+                        Joints::Hip => UpdateHuman::Hip(Some(new_pos.0), Some(new_pos.1)),
+                        Joints::RightKnee => {
+                            UpdateHuman::RightKnee(Some(new_pos.0), Some(new_pos.1))
+                        }
+                        Joints::RightFoot => {
+                            UpdateHuman::RightFoot(Some(new_pos.0), Some(new_pos.1))
+                        }
+                        Joints::Neck => UpdateHuman::Neck(Some(new_pos.0), Some(new_pos.1)),
+                        Joints::LeftElbow => {
+                            UpdateHuman::LeftElbow(Some(new_pos.0), Some(new_pos.1))
+                        }
+                        Joints::LeftHand => UpdateHuman::LeftHand(Some(new_pos.0), Some(new_pos.1)),
+                        Joints::RightElbow => {
+                            UpdateHuman::RightElbow(Some(new_pos.0), Some(new_pos.1))
+                        }
+                        Joints::RightHand => {
+                            UpdateHuman::RightHand(Some(new_pos.0), Some(new_pos.1))
+                        }
+                        Joints::Head => UpdateHuman::Head(Some(new_pos.0), Some(new_pos.1)),
+                    });
+                }
+                true
             }
-            TesterMsg::Ignore => false,
+            TesterMsg::KeyDown(e) => {
+                const KEY_N: u32= 78;
+                log!("keydown: {:?}", e.key_code());
+                if e.key_code() == KEY_N {
+                    self.image_index += 1;
+                    true
+                } else {
+                    false
+                }
+            },
         }
     }
 
@@ -129,127 +128,51 @@ impl Component for Tester {
             x1: 1.5,
             y1: 1.0,
         };
-        use human::UpdateHuman;
-        fn cvt(e: InputEvent) -> f64 {
-            let a: f64 = e
-                .target_unchecked_into::<HtmlInputElement>()
-                .value_as_number();
-            if !a.is_nan() {
-                a
-            } else {
-                0.0
-            }
-        }
         let (
-            left_foot_a,
-            left_foot_b,
-            left_calf_x,
-            left_calf_y,
-            left_thigh_x,
-            left_thigh_y,
-            left_bicep_x,
-            left_bicep_y,
-            left_forearm_x,
-            left_forearm_y,
-            right_calf_x,
-            right_calf_y,
-            right_thigh_x,
-            right_thigh_y,
-            right_bicep_x,
-            right_bicep_y,
-            right_forearm_x,
-            right_forearm_y,
-            torso_x,
-            torso_y,
-            head_x,
-            head_y,
+            left_foot,
+            left_knee,
+            hip,
+            right_knee,
+            right_foot,
+            neck,
+            left_elbow,
+            left_hand,
+            right_elbow,
+            right_hand,
+            head,
         ) = (
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftFootA(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftFootB(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftCalfX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftCalfY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftThighX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftThighY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftBicepX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftBicepY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftForearmX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::LeftForearmY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightCalfX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightCalfY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightThighX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightThighY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightBicepX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightBicepY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightForearmX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::RightForearmY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::TorsoX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::TorsoY(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::HeadX(cvt(e)))),
-            link.callback(|e| TesterMsg::Update(UpdateHuman::HeadY(cvt(e)))),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::LeftFoot)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::LeftKnee)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::Hip)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::RightKnee)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::RightFoot)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::Neck)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::LeftElbow)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::LeftHand)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::RightElbow)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::RightHand)),
+            link.callback(|_| TesterMsg::ClickedJoint(Joints::Head)),
         );
 
         html! {
             <div>
-                <label>{"left_foot_a"}</label>
-                <input oninput={left_foot_a} type="number"/>
-                <label>{"left_foot_b"}</label>
-                <input oninput={left_foot_b} type="number"/>
-                <br/>
-                <label>{"left_calf_x"}</label>
-                <input oninput={left_calf_x} type="number"/>
-                <label>{"left_calf_y"}</label>
-                <input oninput={left_calf_y} type="number"/>
-                <br/>
-                <label>{"left_thigh_x"}</label>
-                <input oninput={left_thigh_x} type="number"/>
-                <label>{"left_thigh_y"}</label>
-                <input oninput={left_thigh_y} type="number"/>
-                <br/>
-                <label>{"left_bicep_x"}</label>
-                <input oninput={left_bicep_x} type="number"/>
-                <label>{"left_bicep_y"}</label>
-                <input oninput={left_bicep_y} type="number"/>
-                <br/>
-                <label>{"left_forearm_x"}</label>
-                <input oninput={left_forearm_x} type="number"/>
-                <label>{"left_forearm_y"}</label>
-                <input oninput={left_forearm_y} type="number"/>
-                <br/>
-                <label>{"right_calf_x"}</label>
-                <input oninput={right_calf_x} type="number"/>
-                <label>{"right_calf_y"}</label>
-                <input oninput={right_calf_y} type="number"/>
-                <br/>
-                <label>{"right_thigh_x"}</label>
-                <input oninput={right_thigh_x} type="number"/>
-                <label>{"right_thigh_y"}</label>
-                <input oninput={right_thigh_y} type="number"/>
-                <br/>
-                <label>{"right_bicep_x"}</label>
-                <input oninput={right_bicep_x} type="number"/>
-                <label>{"right_bicep_y"}</label>
-                <input oninput={right_bicep_y} type="number"/>
-                <br/>
-                <label>{"right_forearm_x"}</label>
-                <input oninput={right_forearm_x} type="number"/>
-                <label>{"right_forearm_y"}</label>
-                <input oninput={right_forearm_y} type="number"/>
-                <br/>
-                <label>{"torso_x"}</label>
-                <input oninput={torso_x} type="number"/>
-                <label>{"torso_y"}</label>
-                <input oninput={torso_y} type="number"/>
-                <br/>
-                <label>{"head_x"}</label>
-                <input oninput={head_x} type="number" name="head_x"/>
-                <label>{"head_y"}</label>
-                <input oninput={head_y} type="number" name="head_y"/>
-                <br/>
-                <svg viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)}  height="100%"  preserveAspectRatio="xMidYMid meet">
-                    <image href="./public/temp.png" height="1" width="1.5"/>
-                    { self.human.view(viewport) }
+                <p>{ format!("{}", self.image_index) }</p>
+                <svg id="svg" viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)} onmouseup={link.callback(|_| TesterMsg::MouseUp)} onmousemove={link.callback(TesterMsg::MouseMove)} onkeydown={link.callback(TesterMsg::KeyDown)} height="100%" tabindex="0" preserveAspectRatio="xMidYMid meet">
+                    <image href={format!("./public/temp{}.png", self.image_index)} height="1" width="1.5"/>
+                    { self.human.view() }
+                    <circle onmousedown={left_foot} cx={(self.human.left_foot.x).to_string()} cy={(self.human.left_foot.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={left_knee} cx={(self.human.left_knee.x).to_string()} cy={(self.human.left_knee.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={hip} cx={(self.human.hip.x).to_string()} cy={(self.human.hip.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={right_knee} cx={(self.human.right_knee.x).to_string()} cy={(self.human.right_knee.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={right_foot} cx={(self.human.right_foot.x).to_string()} cy={(self.human.right_foot.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={neck} cx={(self.human.neck.x).to_string()} cy={(self.human.neck.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={left_elbow} cx={(self.human.left_elbow.x).to_string()} cy={(self.human.left_elbow.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={left_hand} cx={(self.human.left_hand.x).to_string()} cy={(self.human.left_hand.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={right_elbow} cx={(self.human.right_elbow.x).to_string()} cy={(self.human.right_elbow.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={right_hand} cx={(self.human.right_hand.x).to_string()} cy={(self.human.right_hand.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
+                    <circle onmousedown={head} cx={(self.human.head.x).to_string()} cy={(self.human.head.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
                 </svg>
-                </div>
+            </div>
         }
     }
 }
