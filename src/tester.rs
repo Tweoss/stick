@@ -1,5 +1,5 @@
 use crate::human;
-use log::{debug};
+use log::debug;
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
 
@@ -21,6 +21,69 @@ pub struct Tester {
     human: human::Human,
     current_joint: Option<Joints>,
     image_index: usize,
+    output: Output,
+}
+
+#[derive(serde::Serialize)]
+struct Output {
+    positions: Vec<Position>,
+}
+
+impl Output {
+    fn run_download(&self) {
+        let window = web_sys::window().expect("no global `window` exists");
+        let document = window.document().expect("should have a document on window");
+        let a = document
+            .create_element("a")
+            .expect("should have created an element");
+        let a = a
+            .dyn_ref::<web_sys::HtmlAnchorElement>()
+            .expect("should have created an anchor element");
+        a.set_href(&format!(
+            "data:text/json;charset=utf-8,{}",
+            serde_json::to_string(&self).expect("should have serialized")
+        ));
+        let body = document.body().expect("should have a body");
+        a.set_download("output.json");
+        body.append_child(a)
+            .expect("should have appended the anchor element to the body");
+        a.click();
+        body.remove_child(a)
+            .expect("should have removed the anchor element from the body");
+    }
+}
+
+#[derive(serde::Serialize)]
+struct Position {
+    left_foot: (f64, f64),
+    left_knee: (f64, f64),
+    hip: (f64, f64),
+    right_knee: (f64, f64),
+    right_foot: (f64, f64),
+    neck: (f64, f64),
+    left_elbow: (f64, f64),
+    left_hand: (f64, f64),
+    right_elbow: (f64, f64),
+    right_hand: (f64, f64),
+    head: (f64, f64),
+}
+
+impl Position {
+    fn from_human(human: &human::Human) -> Self {
+        Position {
+            left_foot: (human.left_foot.x, human.left_foot.y),
+            left_knee: (human.left_knee.x, human.left_knee.y),
+            hip: (human.hip.x, human.hip.y),
+            right_knee: (human.right_knee.x, human.right_knee.y),
+            right_foot: (human.right_foot.x, human.right_foot.y),
+            neck: (human.neck.x, human.neck.y),
+            left_elbow: (human.left_elbow.x, human.left_elbow.y),
+            left_hand: (human.left_hand.x, human.left_hand.y),
+            right_elbow: (human.right_elbow.x, human.right_elbow.y),
+            right_hand: (human.right_hand.x, human.right_hand.y),
+            head: (human.head.x, human.head.y),
+        }
+    }
 }
 
 pub enum Joints {
@@ -47,6 +110,7 @@ impl Component for Tester {
             human: human::Human::new(),
             current_joint: None,
             image_index: 0,
+            output: Output { positions: vec![] },
         }
     }
 
@@ -108,15 +172,30 @@ impl Component for Tester {
                 true
             }
             TesterMsg::KeyDown(e) => {
-                const KEY_N: u32= 78;
+                const KEY_N: u32 = 78;
+                const KEY_B: u32 = 66;
+                const KEY_D: u32 = 91;
                 log!("keydown: {:?}", e.key_code());
-                if e.key_code() == KEY_N {
-                    self.image_index += 1;
-                    true
-                } else {
-                    false
+                let mut should_update = true;
+                match e.key_code() {
+                    KEY_N => {
+                        self.output
+                            .positions
+                            .push(Position::from_human(&self.human));
+                        self.image_index += 1;
+                    }
+                    KEY_B => {
+                        self.output.positions.pop();
+                        self.image_index -= 1;
+                    }
+                    KEY_D => {
+                        self.output.run_download();
+                    }
+
+                    _ => should_update = false,
                 }
-            },
+                should_update
+            }
         }
     }
 
