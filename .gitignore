@@ -1,1 +1,3 @@
 /target
+*.mov
+**/public/output_*.png

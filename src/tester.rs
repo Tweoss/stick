@@ -174,7 +174,7 @@ impl Component for Tester {
             TesterMsg::KeyDown(e) => {
                 const KEY_N: u32 = 78;
                 const KEY_B: u32 = 66;
-                const KEY_D: u32 = 91;
+                const KEY_D: u32 = 68;
                 log!("keydown: {:?}", e.key_code());
                 let mut should_update = true;
                 match e.key_code() {
@@ -237,7 +237,7 @@ impl Component for Tester {
             <div>
                 <p>{ format!("{}", self.image_index) }</p>
                 <svg id="svg" viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)} onmouseup={link.callback(|_| TesterMsg::MouseUp)} onmousemove={link.callback(TesterMsg::MouseMove)} onkeydown={link.callback(TesterMsg::KeyDown)} height="100%" tabindex="0" preserveAspectRatio="xMidYMid meet">
-                    <image href={format!("./public/temp{}.png", self.image_index)} height="1" width="1.5"/>
+                    <image href={format!("./public/output_{:0>3}.png", self.image_index)} height="1" width="1.5"/>
                     { self.human.view() }
                     <circle onmousedown={left_foot} cx={(self.human.left_foot.x).to_string()} cy={(self.human.left_foot.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
                     <circle onmousedown={left_knee} cx={(self.human.left_knee.x).to_string()} cy={(self.human.left_knee.y).to_string()} r="0.005" stroke="red" stroke-width="0.01" />
