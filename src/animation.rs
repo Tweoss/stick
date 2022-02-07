@@ -1,6 +1,9 @@
-use crate::{human, trace};
+use crate::human;
 use human::Point;
 use wasm_bindgen::JsCast;
+
+#[allow(unused_imports)]
+use crate::trace;
 
 /// Milliseconds in between animation positions.
 const ANIMATION_POSITION_INTERVAL: f64 = 20.0;
@@ -11,6 +14,7 @@ pub struct AnimationsData {
 }
 
 impl AnimationsData {
+	/// Include animations from files as parsed bytes.
 	pub fn load_animations() -> AnimationsData {
 		AnimationsData {
 			walking: serde_cbor::from_slice(include_bytes!("../data/output.cbor")).unwrap(),
@@ -32,7 +36,8 @@ impl Animation {
 		let byte_vector = serde_cbor::to_vec(&self).expect("unable to serialize object");
 		let array = js_sys::Array::new();
 		array.push(&js_sys::Uint8Array::from(&byte_vector[..]));
-		let blob = web_sys::Blob::new_with_u8_array_sequence(&array).expect("unable to create blob");
+		let blob =
+			web_sys::Blob::new_with_u8_array_sequence(&array).expect("unable to create blob");
 
 		let a = document
 			.create_element("a")
@@ -50,8 +55,10 @@ impl Animation {
 		a.click();
 		body.remove_child(a)
 			.expect("should have removed the anchor element from the body");
+		trace!("downloaded");
 	}
 	/// Get an interpolated position for a time since the start of the animation
+	/// Returns none if the time is out of bounds for the specific animation
 	pub fn step(&self, time_step: f64) -> Option<AnimationPosition> {
 		let index = (time_step / ANIMATION_POSITION_INTERVAL).floor() as usize;
 		if index >= self.positions.len() {
@@ -82,6 +89,7 @@ pub struct AnimationPosition {
 }
 
 impl AnimationPosition {
+	/// Clone the position of a human into a new position
 	pub fn from_human(human: &human::Human) -> Self {
 		human.joints.clone()
 	}

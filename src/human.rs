@@ -1,7 +1,11 @@
-use crate::{animation, trace};
+use crate::animation;
 use yew::prelude::*;
 
+#[allow(unused_imports)]
+use crate::trace;
+
 lazy_static! {
+    /// Static variable that contains the loaded animations
     static ref ANIMATIONS_DATA: animation::AnimationsData =
         animation::AnimationsData::load_animations();
 }
@@ -53,8 +57,8 @@ impl Position {
 }
 
 pub struct Human {
-    time: f64,
     pub joints: animation::AnimationPosition,
+    /// The current animation and its start time
     current_animation: Option<(&'static animation::Animation, f64)>,
 }
 
@@ -95,7 +99,6 @@ impl Human {
 impl Human {
     pub fn new() -> Self {
         Human {
-            time: 0.0,
             joints: animation::AnimationPosition {
                 left_foot: Point { x: 0.15, y: 0.9 },
                 left_knee: Point { x: 0.225, y: 0.85 },
@@ -114,7 +117,6 @@ impl Human {
     }
     pub fn update(&mut self, time: f64) {
         if let Some((animation, start_time)) = &self.current_animation {
-            trace!("hi");
             if let Some(joints) = animation.step(time - start_time) {
                 self.joints = joints
             } else {
@@ -123,7 +125,6 @@ impl Human {
         } else {
             self.current_animation = Some((&ANIMATIONS_DATA.walking, time));
         }
-        trace!("{}", self.time);
     }
 
     pub fn view(&self) -> Html {

@@ -1,7 +1,9 @@
-use crate::trace;
 use crate::{animation, human};
 use wasm_bindgen::JsCast;
 use yew::prelude::*;
+
+#[allow(unused_imports)]
+use crate::trace;
 
 pub enum TesterMsg {
     ClickedJoint(Joints, MouseEvent),
@@ -19,6 +21,7 @@ pub struct Tester {
     output: animation::Animation,
 }
 
+#[derive(Clone)]
 pub enum Joints {
     LeftFoot,
     LeftKnee,
@@ -150,7 +153,10 @@ impl Component for Tester {
                         self.editing_index += 1;
                     }
                     KEY_B => {
-                        if self.output.positions.pop().is_some() {
+                        if self.output.positions.pop().is_some()
+                            && self.image_index > 1
+                            && self.editing_index > 0
+                        {
                             self.image_index -= 1;
                             self.editing_index -= 1;
                         }
@@ -162,9 +168,10 @@ impl Component for Tester {
                         self.image_index += 1;
                     }
                     KEY_LEFT => {
-                        self.image_index -= 1;
+                        if let Some(i) = (self.image_index - 1).checked_sub(1) {
+                            self.image_index = i + 1;
+                        }
                     }
-
                     _ => should_update = false,
                 }
                 should_update
@@ -180,6 +187,8 @@ impl Component for Tester {
             x1: 1.5,
             y1: 1.0,
         };
+        let joint_callback =
+            move |a: Joints| link.callback(move |e| TesterMsg::ClickedJoint(a.clone(), e));
         let (
             left_foot,
             left_knee,
@@ -193,17 +202,17 @@ impl Component for Tester {
             right_hand,
             head,
         ) = (
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::LeftFoot, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::LeftKnee, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::Hip, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::RightKnee, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::RightFoot, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::Neck, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::LeftElbow, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::LeftHand, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::RightElbow, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::RightHand, e)),
-            link.callback(|e| TesterMsg::ClickedJoint(Joints::Head, e)),
+            joint_callback(Joints::LeftFoot),
+            joint_callback(Joints::LeftKnee),
+            joint_callback(Joints::Hip),
+            joint_callback(Joints::RightKnee),
+            joint_callback(Joints::RightFoot),
+            joint_callback(Joints::Neck),
+            joint_callback(Joints::LeftElbow),
+            joint_callback(Joints::LeftHand),
+            joint_callback(Joints::RightElbow),
+            joint_callback(Joints::RightHand),
+            joint_callback(Joints::Head),
         );
 
         html! {

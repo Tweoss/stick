@@ -24,7 +24,6 @@ enum Msg {
 
 struct Model {
     human: human::Human,
-    // last_tick: Option<f64>,
     animation_id: Option<AnimationFrame>,
 }
 
@@ -38,7 +37,6 @@ impl Component for Model {
         print!("create");
         Self {
             human: human::Human::new(),
-            // last_tick: None,
             animation_id: Some(request_id),
         }
     }
@@ -46,17 +44,6 @@ impl Component for Model {
     fn update(&mut self, ctx: &Context<Self>, msg: Self::Message) -> bool {
         match msg {
             Msg::Tick(t) => {
-                // let out = match self.last_tick {
-                //     None => {
-                //         self.last_tick = Some(t);
-                //         false
-                //     }
-                //     Some(last_tick) => {
-                //         // let delta = t - last_tick;
-                //         self.last_tick = Some(t);
-                //         false
-                //     }
-                // };
                 self.human.update(t);
                 let callback = ctx.link().callback(Msg::Tick);
                 let request_id = request_animation_frame(move |t: f64| callback.emit(t));
@@ -85,6 +72,6 @@ impl Component for Model {
 
 fn main() {
     console_log::init_with_level(Level::Debug).unwrap();
-    yew::start_app::<Model>();
-    // yew::start_app::<tester::Tester>();
+    // yew::start_app::<Model>();
+    yew::start_app::<tester::Tester>();
 }
