@@ -1,16 +1,22 @@
 use gloo_render::{request_animation_frame, AnimationFrame};
-use log::{debug, Level};
+use log::Level;
 use yew::prelude::*;
+#[macro_use]
+extern crate lazy_static;
 
+mod animation;
 mod human;
 mod tester;
 
+// Allow other modules to use the logging macro
+// use print;
 // Logging macro for easier debugging. Displays file and line number. Use with `log!("Hello World")`
-macro_rules! log {
+macro_rules! trace {
     ($($t:tt)*) => {
-        debug!("[{}:{}] {}", file!(), line!(), &format_args!($($t)*).to_string());
+        log::debug!("[{}:{}] {}", file!(), line!(), &format_args!($($t)*).to_string());
     }
 }
+pub(crate) use trace;
 
 enum Msg {
     Tick(f64),
@@ -29,7 +35,7 @@ impl Component for Model {
     fn create(ctx: &Context<Self>) -> Self {
         let callback = ctx.link().callback(Msg::Tick);
         let request_id = request_animation_frame(move |t: f64| callback.emit(t));
-        log!("create");
+        print!("create");
         Self {
             human: human::Human::new(),
             // last_tick: None,
@@ -61,7 +67,6 @@ impl Component for Model {
     }
 
     fn view(&self, _ctx: &Context<Self>) -> Html {
-        // let link = ctx.link();
         let viewport = human::Viewport {
             x0: 0.0,
             y0: 0.0,
@@ -71,8 +76,6 @@ impl Component for Model {
         html! {
             <div>
                 <svg viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)} class="svg-container">
-                    // <rect x="0" y="0" width="1.5" height="1.0"></rect>
-                    // <circle cx={("0.0", rx_view.clone().filter_map(|x| future::ready(if let AppView::MoveDot(a, _) = x {Some(a.to_string())} else {None})))} cy={("0.0", rx_view.clone().filter_map(|x| future::ready(if let AppView::MoveDot(_, a) = x {Some(a.to_string())} else {None})))} r="0.1" fill="red" xmlns=ns></circle>
                     { self.human.view() }
                 </svg>
             </div>
@@ -82,6 +85,6 @@ impl Component for Model {
 
 fn main() {
     console_log::init_with_level(Level::Debug).unwrap();
-    // yew::start_app::<Model>();
-    yew::start_app::<tester::Tester>();
+    yew::start_app::<Model>();
+    // yew::start_app::<tester::Tester>();
 }
