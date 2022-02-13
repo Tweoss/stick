@@ -29,6 +29,12 @@ impl Point {
             y: self.y + (next.y - self.y) * offset,
         }
     }
+    pub fn apply_offset_by(&self, initial_hip_coords: Point) -> Self {
+        Point {
+            x: self.x + initial_hip_coords.x,
+            y: self.y + initial_hip_coords.y,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -36,13 +42,6 @@ impl Point {
 struct Position {
     a: Point,
     b: Point,
-}
-
-pub struct Viewport {
-    pub x0: f64,
-    pub y0: f64,
-    pub x1: f64,
-    pub y1: f64,
 }
 
 // rendering a Position
@@ -56,10 +55,17 @@ impl Position {
     }
 }
 
+pub struct Viewport {
+    pub x0: f64,
+    pub y0: f64,
+    pub x1: f64,
+    pub y1: f64,
+}
+
 pub struct Human {
     pub joints: animation::AnimationPosition,
     /// The current animation and its start time
-    current_animation: Option<(&'static animation::Animation, f64)>,
+    current_animation: Option<(&'static animation::Animation, f64, Point)>,
 }
 
 pub enum UpdateHuman {
@@ -100,30 +106,71 @@ impl Human {
     pub fn new() -> Self {
         Human {
             joints: animation::AnimationPosition {
-                left_foot: Point { x: 0.15, y: 0.9 },
-                left_knee: Point { x: 0.225, y: 0.85 },
-                hip: Point { x: 0.3, y: 0.82 },
-                right_knee: Point { x: 0.375, y: 0.77 },
-                right_foot: Point { x: 0.45, y: 0.74 },
-                neck: Point { x: 0.3, y: 0.77 },
-                left_elbow: Point { x: 0.225, y: 0.72 },
-                left_hand: Point { x: 0.15, y: 0.74 },
-                right_elbow: Point { x: 0.375, y: 0.72 },
-                right_hand: Point { x: 0.45, y: 0.72 },
-                head: Point { x: 0.315, y: 0.72 },
+                left_foot: Point {
+                    x: 0.6159340111255642,
+                    y: 0.8270827460289001,
+                },
+                left_knee: Point {
+                    x: 0.5924965111255642,
+                    y: 0.6939577984809875,
+                },
+                hip: Point {
+                    x: 0.6106285484790805,
+                    y: 0.590322980928422,
+                },
+                right_knee: Point {
+                    x: 0.6083327460289001,
+                    y: 0.7036452221870422,
+                },
+                right_foot: Point {
+                    x: 0.6279347174167649,
+                    y: 0.846452502393722,
+                },
+                neck: Point {
+                    x: 0.5676065373420718,
+                    y: 0.36968227741718246,
+                },
+                left_elbow: Point {
+                    x: 0.5385421784877777,
+                    y: 0.49030727663040113,
+                },
+                left_hand: Point {
+                    x: 0.5525000095367432,
+                    y: 0.5759375691413879,
+                },
+                right_elbow: Point {
+                    x: 0.6885385552883145,
+                    y: 0.4378142968893053,
+                },
+                right_hand: Point {
+                    x: 0.6315625309944153,
+                    y: 0.45968756079673767,
+                },
+                head: Point {
+                    x: 0.5425034793376926,
+                    y: 0.2504119847059246,
+                },
             },
             current_animation: None,
         }
     }
     pub fn update(&mut self, time: f64) {
-        if let Some((animation, start_time)) = &self.current_animation {
+        if let Some((animation, start_time, offset)) = &self.current_animation {
             if let Some(joints) = animation.step(time - start_time) {
-                self.joints = joints
+                self.joints = joints.apply_offset_by(*offset);
             } else {
                 self.current_animation = None;
             }
         } else {
-            self.current_animation = Some((&ANIMATIONS_DATA.walking, time));
+            let animation = &ANIMATIONS_DATA.walking;
+            if let Some(first_pos) = animation.positions.get(0) {
+                let offset = Point { x: self.joints.hip.x - first_pos.hip.x, y: self.joints.hip.y - first_pos.hip.y }; 
+                self.current_animation = Some((
+                    animation,
+                    time,
+                    offset
+                ));
+            }
         }
     }
 

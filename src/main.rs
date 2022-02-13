@@ -7,6 +7,7 @@ extern crate lazy_static;
 mod animation;
 mod human;
 mod tester;
+mod background;
 
 // Allow other modules to use the logging macro
 // use print;
@@ -24,6 +25,7 @@ enum Msg {
 
 struct Model {
     human: human::Human,
+    background: background::Background,
     animation_id: Option<AnimationFrame>,
 }
 
@@ -37,6 +39,7 @@ impl Component for Model {
         print!("create");
         Self {
             human: human::Human::new(),
+            background: background::Background::new(),
             animation_id: Some(request_id),
         }
     }
@@ -45,6 +48,8 @@ impl Component for Model {
         match msg {
             Msg::Tick(t) => {
                 self.human.update(t);
+                self.background.apply_offset(&self.human.joints);
+
                 let callback = ctx.link().callback(Msg::Tick);
                 let request_id = request_animation_frame(move |t: f64| callback.emit(t));
                 self.animation_id = Some(request_id);
@@ -63,6 +68,7 @@ impl Component for Model {
         html! {
             <div>
                 <svg viewBox={format!("{} {} {} {}", viewport.x0, viewport.y0, viewport.x1, viewport.y1)} class="svg-container">
+                    { self.background.view() }
                     { self.human.view() }
                 </svg>
             </div>
@@ -72,6 +78,6 @@ impl Component for Model {
 
 fn main() {
     console_log::init_with_level(Level::Debug).unwrap();
-    // yew::start_app::<Model>();
-    yew::start_app::<tester::Tester>();
+    yew::start_app::<Model>();
+    // yew::start_app::<tester::Tester>();
 }

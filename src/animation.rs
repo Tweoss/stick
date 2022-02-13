@@ -6,7 +6,7 @@ use wasm_bindgen::JsCast;
 use crate::trace;
 
 /// Milliseconds in between animation positions.
-const ANIMATION_POSITION_INTERVAL: f64 = 20.0;
+const ANIMATION_POSITION_INTERVAL: f64 = 200.0;
 
 #[derive(Debug)]
 pub struct AnimationsData {
@@ -107,6 +107,22 @@ impl AnimationPosition {
             right_elbow: self.right_elbow.lerp(&next.right_elbow, offset),
             right_hand: self.right_hand.lerp(&next.right_hand, offset),
             head: self.head.lerp(&next.head, offset),
+        }
+    }
+    /// Undoes the offset from the initial hip coordinates.
+    pub fn apply_offset_by(&self, initial_hip_coords: Point) -> Self {
+        AnimationPosition {
+            left_foot: self.left_foot.apply_offset_by(initial_hip_coords),
+            left_knee: self.left_knee.apply_offset_by(initial_hip_coords),
+            hip: self.hip.apply_offset_by(initial_hip_coords),
+            right_knee: self.right_knee.apply_offset_by(initial_hip_coords),
+            right_foot: self.right_foot.apply_offset_by(initial_hip_coords),
+            neck: self.neck.apply_offset_by(initial_hip_coords),
+            left_elbow: self.left_elbow.apply_offset_by(initial_hip_coords),
+            left_hand: self.left_hand.apply_offset_by(initial_hip_coords),
+            right_elbow: self.right_elbow.apply_offset_by(initial_hip_coords),
+            right_hand: self.right_hand.apply_offset_by(initial_hip_coords),
+            head: self.head.apply_offset_by(initial_hip_coords),
         }
     }
 }
